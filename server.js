@@ -9,7 +9,11 @@ const brandRoutes = require("./routes/brandRoute");
 const PORT = process.env.PORT || 5000;
 require("dotenv").config();
 // Middleware
-app.use(cors());
+const corsOptions = {
+  origin: "*", // Allow all origins (change this to restrict access)
+  methods: ["GET", "POST", "PUT", "DELETE"], // Allowed HTTP methods
+  allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
+};
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 // MongoDB connection
