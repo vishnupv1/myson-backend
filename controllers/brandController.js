@@ -5,7 +5,11 @@ const getBrand = async (req, res) => {
     const brands = await Brand.find();
     res.json(brands);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching brands", error });
+    console.error("Error fetching brands:", error.message, error.stack);
+    res.status(500).json({
+      message: "Error fetching brands",
+      error: error.message,
+    });
   }
 };
 
