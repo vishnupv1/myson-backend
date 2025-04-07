@@ -13,7 +13,6 @@ const getBrand = async (req, res) => {
     });
   }
 };
-
 const addBrand = async (req, res) => {
   try {
     const newBrand = new Brand(req.body);
@@ -23,7 +22,6 @@ const addBrand = async (req, res) => {
     res.status(500).json({ message: "Error adding Brand", error });
   }
 };
-
 const deleteBrand = async (req, res) => {
   const { id } = req.params;
   try {
@@ -34,18 +32,6 @@ const deleteBrand = async (req, res) => {
     res.json({ message: "Brand deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Error deleting Brand", error });
-  }
-};
-const getBrandProducts = async (req, res) => {
-  const { brand } = req.params; // Get product ID from request params
-  try {
-    const products = await Product.find({ brand });
-    if (!product) {
-      return res.status(404).json({ message: "Product not found" });
-    }
-    res.json(products);
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching product", error });
   }
 };
 const updateBrand = async (req, res) => {
@@ -68,5 +54,4 @@ module.exports = {
   addBrand,
   deleteBrand,
   updateBrand,
-  getBrandProducts,
 };
