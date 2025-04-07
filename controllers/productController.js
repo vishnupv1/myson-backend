@@ -26,6 +26,12 @@ const getProduct = async (req, res) => {
 const getBrandProducts = async (req, res) => {
   const { brand } = req.query;
 
+  if (!brand) {
+    return res
+      .status(400)
+      .json({ message: "Brand query parameter is required" });
+  }
+
   try {
     const products = await Product.find({ brand });
 
