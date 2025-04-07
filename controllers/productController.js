@@ -43,7 +43,7 @@ const getBrandProducts = async (req, res) => {
 
     res.json(products);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching products", error });
+    res.status(500).json({ message: "Error fetching brand products", error });
   }
 };
 
