@@ -24,10 +24,10 @@ const getProduct = async (req, res) => {
   }
 };
 const getBrandProducts = async (req, res) => {
-  const { brand } = req.params; // Get product ID from request params
+  const { brand } = req.query; // Get product ID from request params
   try {
     const products = await Product.find({ brand });
-    if (!product) {
+    if (!products) {
       return res.status(404).json({ message: "Product not found" });
     }
     res.json(products);
