@@ -24,10 +24,12 @@ const getProduct = async (req, res) => {
   }
 };
 
-
 // Add a new product
 const addProduct = async (req, res) => {
   try {
+    if (!req.body.specifications) {
+      req.body.specifications = [];
+    }
     const newProduct = new Product(req.body);
     await newProduct.save();
     res.json(newProduct);
