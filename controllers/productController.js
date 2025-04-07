@@ -24,17 +24,23 @@ const getProduct = async (req, res) => {
   }
 };
 const getBrandProducts = async (req, res) => {
-  const { brand } = req.query; // Get product ID from request params
+  const { brand } = req.query;
+
   try {
     const products = await Product.find({ brand });
-    if (!products) {
-      return res.status(404).json({ message: "Product not found" });
+
+    if (!products || products.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No products found for this brand" });
     }
+
     res.json(products);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching product", error });
+    res.status(500).json({ message: "Error fetching products", error });
   }
 };
+
 // Add a new product
 const addProduct = async (req, res) => {
   try {
