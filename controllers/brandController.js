@@ -49,7 +49,7 @@ const updateBrand = async (req, res) => {
   }
 };
 const getBrandProducts = async (req, res) => {
-  const { brand } = req.query;
+  const { brand } = req.params;
 
   if (!brand) {
     return res
