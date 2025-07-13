@@ -6,7 +6,7 @@ const {
     addBrand,
     updateBrand,
     deleteBrand,
-    unlistBrand
+    toggleBrandListing
 } = require('../controllers/brandController');
 
 router.use(auth);
@@ -14,7 +14,7 @@ router.use(auth);
 router.get('/', getBrands);
 router.post('/', addBrand);
 router.put('/:id', updateBrand);
-router.patch('/:id/unlist', unlistBrand);
+router.patch('/:id/listing', toggleBrandListing);
 router.delete('/:id', deleteBrand);
 
 module.exports = router;

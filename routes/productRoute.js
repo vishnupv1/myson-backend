@@ -11,7 +11,7 @@ const {
     uploadImages,
     replaceImage,
     deleteImage,
-    unlistProduct
+    toggleProductListing
 } = require('../controllers/productController');
 
 // All routes below require authentication
@@ -24,22 +24,18 @@ router.get('/:id', getProduct);
 // Create product with at least 1 image
 router.post('/', upload.array('images', 10), addProduct);
 
-// Update product details
-router.put('/:id', updateProduct);
+// Add images to product
+router.post('/:id/images', upload.array('images', 10), require('../controllers/productController').addProductImages);
+// Delete a specific image by filename
+router.delete('/:id/images/:imageName', require('../controllers/productController').deleteProductImage);
+
+// Update product details (with images)
+router.put('/:id', upload.array('images', 10), updateProduct);
 
 // Soft delete (unlist)
-router.patch('/:id/unlist', unlistProduct);
+router.patch('/:id/listing', toggleProductListing);
 
 // Hard delete
 router.delete('/:id', deleteProduct);
-
-// Add images to product
-router.post('/:id/images', upload.array('images', 10), uploadImages);
-
-// Replace a specific image
-router.put('/:id/images/:imageIndex', upload.single('image'), replaceImage);
-
-// Delete a specific image
-router.delete('/:id/images/:imageIndex', deleteImage);
 
 module.exports = router;

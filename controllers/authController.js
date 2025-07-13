@@ -9,16 +9,20 @@ exports.login = catchAsync(async (req, res, next) => {
     if (!username || !password) {
         return next(new AppError('Username and password are required', 400));
     }
+
     const admin = await Admin.findOne({ username });
     if (!admin) {
         return next(new AppError('Invalid credentials', 401));
     }
+
     const isMatch = await bcrypt.compare(password, admin.password);
     if (!isMatch) {
         return next(new AppError('Invalid credentials', 401));
     }
+
     const token = jwt.sign({ id: admin._id }, process.env.JWT_SECRET, {
-        expiresIn: '7d',
+        expiresIn: '1h',
     });
+    
     res.json({ token });
 }); 

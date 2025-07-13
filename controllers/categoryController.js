@@ -4,14 +4,18 @@ const AppError = require('../utils/errorHandler');
 const catchAsync = require('../utils/catchAsync');
 
 exports.getCategories = catchAsync(async (req, res, next) => {
-    const { page = 1, limit = 10, listed = true, search } = req.query;
+    const { page = 1, limit = 10, listed, search } = req.query;
     const filter = {};
-    if (listed !== undefined) filter.listed = listed === 'true';
+
+    if (listed !== undefined && listed !== '') filter.listed = listed === 'true';
     if (search) filter.name = { $regex: search, $options: 'i' };
+
     const categories = await Category.find(filter)
         .skip((page - 1) * limit)
         .limit(Number(limit));
+
     const total = await Category.countDocuments(filter);
+
     res.json({ total, page: Number(page), limit: Number(limit), categories });
 });
 

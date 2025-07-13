@@ -6,33 +6,30 @@ const catchAsync = require('../utils/catchAsync');
 const path = require('path');
 const fs = require('fs');
 
-// Helper to build image URLs
-function buildImageUrls(req, images) {
-    return images.map(img => `${req.protocol}://${req.get('host')}/public/images/${img}`);
-}
 
 // List products with pagination and filtering
 exports.getProducts = catchAsync(async (req, res, next) => {
-    const { page = 1, limit = 10, category, brand, listed = true, search } = req.query;
-    const filter = { listed };
+    const { page = 1, limit = 10, category, brand, listed, search } = req.query;
+    const filter = {};
+
     if (category) filter.category = category;
     if (brand) filter.brand = brand;
-    if (listed !== undefined) filter.listed = listed === 'true';
+    if (listed !== undefined && listed !== '') filter.listed = listed === 'true';
     if (search) filter.name = { $regex: search, $options: 'i' };
+
     const products = await Product.find(filter)
         .populate('category')
         .populate('brand')
         .skip((page - 1) * limit)
         .limit(Number(limit));
+
     const total = await Product.countDocuments(filter);
+
     res.json({
         total,
         page: Number(page),
         limit: Number(limit),
-        products: products.map(p => ({
-            ...p.toObject(),
-            images: buildImageUrls(req, p.images)
-        }))
+        products: products.map(p => p.toObject())
     });
 });
 
@@ -41,10 +38,11 @@ exports.getProduct = catchAsync(async (req, res, next) => {
     const product = await Product.findById(req.params.id)
         .populate('category')
         .populate('brand');
+
     if (!product) return next(new AppError('Product not found', 404));
+
     res.json({
-        ...product.toObject(),
-        images: buildImageUrls(req, product.images)
+        product: product.toObject()
     });
 });
 
@@ -68,29 +66,69 @@ exports.addProduct = catchAsync(async (req, res, next) => {
         listed: true
     });
     res.status(201).json({
-        ...product.toObject(),
-        images: buildImageUrls(req, product.images)
+        ...product.toObject()
     });
 });
 
 // Update product details
 exports.updateProduct = catchAsync(async (req, res, next) => {
     const { id } = req.params;
-    const update = req.body;
-    const product = await Product.findByIdAndUpdate(id, update, { new: true });
+    let update = req.body;
+
+    // Parse toBeDeleted if present
+    let toBeDeleted = [];
+    if (update.toBeDeleted) {
+        try {
+            toBeDeleted = JSON.parse(update.toBeDeleted);
+        } catch (e) {
+            return next(new AppError('Invalid toBeDeleted format', 400));
+        }
+    }
+
+    // Find product
+    const product = await Product.findById(id);
     if (!product) return next(new AppError('Product not found', 404));
-    res.json({
-        ...product.toObject(),
-        images: buildImageUrls(req, product.images)
-    });
+
+    // Remove images marked for deletion
+    if (toBeDeleted.length > 0) {
+        product.images = product.images.filter(img => {
+            if (toBeDeleted.includes(img)) {
+                // Delete from disk
+                const imgPath = path.join(__dirname, '../public/images', img);
+                if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+                return false;
+            }
+            return true;
+        });
+    }
+
+    // Add new uploaded images
+    if (req.files && req.files.length > 0) {
+        product.images.push(...req.files.map(f => f.filename));
+    }
+
+    // Update other fields
+    if (update.name !== undefined) product.name = update.name;
+    if (update.description !== undefined) product.description = update.description;
+    if (update.price !== undefined) product.price = update.price;
+    if (update.category !== undefined) product.category = update.category;
+    if (update.brand !== undefined) product.brand = update.brand;
+
+    await product.save();
+
+    res.json(product);
 });
 
-// Soft delete (unlist)
-exports.unlistProduct = catchAsync(async (req, res, next) => {
+// Replace the unlistProduct export with toggleProductListing
+exports.toggleProductListing = catchAsync(async (req, res, next) => {
     const { id } = req.params;
-    const product = await Product.findByIdAndUpdate(id, { listed: false }, { new: true });
+    const { listed } = req.body;
+    if (typeof listed !== 'boolean') {
+        return next(new AppError('Missing or invalid "listed" boolean in request body', 400));
+    }
+    const product = await Product.findByIdAndUpdate(id, { listed }, { new: true });
     if (!product) return next(new AppError('Product not found', 404));
-    res.json({ message: 'Product unlisted', product });
+    res.json({ message: `Product ${listed ? 'listed' : 'unlisted'}`, product });
 });
 
 // Hard delete
@@ -106,65 +144,33 @@ exports.deleteProduct = catchAsync(async (req, res, next) => {
     res.json({ message: 'Product deleted' });
 });
 
-// Add images to product
-exports.uploadImages = catchAsync(async (req, res, next) => {
+exports.addProductImages = catchAsync(async (req, res, next) => {
     const { id } = req.params;
+    const product = await Product.findById(id);
+    if (!product) return next(new AppError('Product not found', 404));
     if (!req.files || req.files.length === 0) {
         return next(new AppError('No images uploaded', 400));
     }
-    const product = await Product.findById(id);
-    if (!product) return next(new AppError('Product not found', 404));
     product.images.push(...req.files.map(f => f.filename));
     await product.save();
-    res.json({
-        ...product.toObject(),
-        images: buildImageUrls(req, product.images)
-    });
+    res.json(product);
 });
 
-// Replace a specific image
-exports.replaceImage = catchAsync(async (req, res, next) => {
-    const { id, imageIndex } = req.params;
+exports.deleteProductImage = catchAsync(async (req, res, next) => {
+    const { id, imageName } = req.params;
     const product = await Product.findById(id);
     if (!product) return next(new AppError('Product not found', 404));
-    const idx = Number(imageIndex);
-    if (isNaN(idx) || idx < 0 || idx >= product.images.length) {
-        return next(new AppError('Invalid image index', 400));
+    if (!product.images.includes(imageName)) {
+        return next(new AppError('Image not found in product', 404));
     }
-    // Delete old image from disk
-    const oldImg = product.images[idx];
-    const oldImgPath = path.join(__dirname, '../public/images', oldImg);
-    if (fs.existsSync(oldImgPath)) fs.unlinkSync(oldImgPath);
-    // Replace with new image
-    if (!req.file) return next(new AppError('No image uploaded', 400));
-    product.images[idx] = req.file.filename;
-    await product.save();
-    res.json({
-        ...product.toObject(),
-        images: buildImageUrls(req, product.images)
-    });
-});
-
-// Delete a specific image
-exports.deleteImage = catchAsync(async (req, res, next) => {
-    const { id, imageIndex } = req.params;
-    const product = await Product.findById(id);
-    if (!product) return next(new AppError('Product not found', 404));
-    const idx = Number(imageIndex);
-    if (isNaN(idx) || idx < 0 || idx >= product.images.length) {
-        return next(new AppError('Invalid image index', 400));
+    if (product.images.length <= 1) {
+        return next(new AppError('A product must have at least one image', 400));
     }
-    // Delete image from disk
-    const img = product.images[idx];
-    const imgPath = path.join(__dirname, '../public/images', img);
+    // Remove from array
+    product.images = product.images.filter(img => img !== imageName);
+    // Delete from disk
+    const imgPath = path.join(__dirname, '../public/images', imageName);
     if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
-    product.images.splice(idx, 1);
-    if (product.images.length === 0) {
-        return next(new AppError('At least one image is required', 400));
-    }
     await product.save();
-    res.json({
-        ...product.toObject(),
-        images: buildImageUrls(req, product.images)
-    });
+    res.json(product);
 });
