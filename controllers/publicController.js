@@ -97,4 +97,20 @@ exports.setSubcategoryProducts = (type, productIds) => {
     if (SUBCATEGORIES[type]) {
         subcategoryProducts[type] = productIds;
     }
-}; 
+};
+
+
+exports.searchProducts = catchAsync(async (req, res, next) => {
+    const q = req.query.q;
+    
+    if (!q || typeof q !== 'string' || q.trim() === '') {
+        return res.status(400).json({ message: 'Missing or invalid search query' });
+    }
+
+    const products = await Product.find({
+        name: { $regex: q, $options: 'i' },
+        listed: true
+    }).limit(10).populate("brand");
+
+    res.json(products);
+});

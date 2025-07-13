@@ -11,7 +11,8 @@ const {
     uploadImages,
     replaceImage,
     deleteImage,
-    toggleProductListing
+    toggleProductListing,
+    searchProducts
 } = require('../controllers/productController');
 
 // All routes below require authentication
