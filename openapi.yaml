@@ -1,0 +1,694 @@
+openapi: 3.0.3
+info:
+    title: Admin Product Management API
+    version: 1.0.0
+    description: |
+        Backend API for admin-side product, category, and brand management with JWT authentication, image upload, and public content serving.
+servers:
+    - url: http://localhost:5000/api/v1
+      description: Local server
+components:
+    securitySchemes:
+        bearerAuth:
+            type: http
+            scheme: bearer
+            bearerFormat: JWT
+    schemas:
+        Product:
+            type: object
+            properties:
+                _id:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                price:
+                    type: number
+                images:
+                    type: array
+                    items:
+                        type: string
+                        description: Image URL
+                category:
+                    $ref: '#/components/schemas/Category'
+                brand:
+                    $ref: '#/components/schemas/Brand'
+                listed:
+                    type: boolean
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+        Category:
+            type: object
+            properties:
+                _id:
+                    type: string
+                name:
+                    type: string
+                listed:
+                    type: boolean
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+        Brand:
+            type: object
+            properties:
+                _id:
+                    type: string
+                name:
+                    type: string
+                listed:
+                    type: boolean
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+        LoginRequest:
+            type: object
+            properties:
+                username:
+                    type: string
+                password:
+                    type: string
+        LoginResponse:
+            type: object
+            properties:
+                token:
+                    type: string
+        PaginatedProducts:
+            type: object
+            properties:
+                total:
+                    type: integer
+                page:
+                    type: integer
+                limit:
+                    type: integer
+                products:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Product'
+        PaginatedCategories:
+            type: object
+            properties:
+                total:
+                    type: integer
+                page:
+                    type: integer
+                limit:
+                    type: integer
+                categories:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Category'
+        PaginatedBrands:
+            type: object
+            properties:
+                total:
+                    type: integer
+                page:
+                    type: integer
+                limit:
+                    type: integer
+                brands:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Brand'
+security:
+    - bearerAuth: []
+paths:
+    /login:
+        post:
+            summary: Admin login
+            tags: [Auth]
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/LoginRequest'
+            responses:
+                '200':
+                    description: JWT token
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/LoginResponse'
+    /products:
+        get:
+            summary: List products (admin)
+            tags: [Products]
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: query
+                  name: page
+                  schema:
+                      type: integer
+                - in: query
+                  name: limit
+                  schema:
+                      type: integer
+                - in: query
+                  name: category
+                  schema:
+                      type: string
+                - in: query
+                  name: brand
+                  schema:
+                      type: string
+                - in: query
+                  name: listed
+                  schema:
+                      type: boolean
+                - in: query
+                  name: search
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: Paginated products
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PaginatedProducts'
+        post:
+            summary: Create product
+            tags: [Products]
+            security:
+                - bearerAuth: []
+            requestBody:
+                required: true
+                content:
+                    multipart/form-data:
+                        schema:
+                            type: object
+                            properties:
+                                name:
+                                    type: string
+                                description:
+                                    type: string
+                                price:
+                                    type: number
+                                category:
+                                    type: string
+                                brand:
+                                    type: string
+                                images:
+                                    type: array
+                                    items:
+                                        type: string
+                                        format: binary
+            responses:
+                '201':
+                    description: Product created
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Product'
+    /products/{id}:
+        get:
+            summary: Get product by ID (admin)
+            tags: [Products]
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: Product details
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Product'
+        put:
+            summary: Update product
+            tags: [Products]
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Product'
+            responses:
+                '200':
+                    description: Product updated
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Product'
+        delete:
+            summary: Delete product (hard delete)
+            tags: [Products]
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: Product deleted
+    /products/{id}/images:
+        post:
+            summary: Add images to product
+            tags: [Products]
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    multipart/form-data:
+                        schema:
+                            type: object
+                            properties:
+                                images:
+                                    type: array
+                                    items:
+                                        type: string
+                                        format: binary
+            responses:
+                '200':
+                    description: Images added
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Product'
+    /products/{id}/images/{imageIndex}:
+        put:
+            summary: Replace a specific image
+            tags: [Products]
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+                - in: path
+                  name: imageIndex
+                  required: true
+                  schema:
+                      type: integer
+            requestBody:
+                required: true
+                content:
+                    multipart/form-data:
+                        schema:
+                            type: object
+                            properties:
+                                image:
+                                    type: string
+                                    format: binary
+            responses:
+                '200':
+                    description: Image replaced
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Product'
+        delete:
+            summary: Delete a specific image
+            tags: [Products]
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+                - in: path
+                  name: imageIndex
+                  required: true
+                  schema:
+                      type: integer
+            responses:
+                '200':
+                    description: Image deleted
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Product'
+    /products/{id}/unlist:
+        patch:
+            summary: Unlist (soft delete) a product
+            tags: [Products]
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: Product unlisted
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Product'
+    /categories:
+        get:
+            summary: List categories (admin)
+            tags: [Categories]
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: query
+                  name: page
+                  schema:
+                      type: integer
+                - in: query
+                  name: limit
+                  schema:
+                      type: integer
+                - in: query
+                  name: listed
+                  schema:
+                      type: boolean
+                - in: query
+                  name: search
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: Paginated categories
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PaginatedCategories'
+        post:
+            summary: Create category
+            tags: [Categories]
+            security:
+                - bearerAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Category'
+            responses:
+                '201':
+                    description: Category created
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Category'
+    /categories/{id}:
+        put:
+            summary: Update category
+            tags: [Categories]
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Category'
+            responses:
+                '200':
+                    description: Category updated
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Category'
+        delete:
+            summary: Delete category (hard delete)
+            tags: [Categories]
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: Category deleted
+    /categories/{id}/unlist:
+        patch:
+            summary: Unlist (soft delete) a category
+            tags: [Categories]
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: Category unlisted
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Category'
+    /brands:
+        get:
+            summary: List brands (admin)
+            tags: [Brands]
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: query
+                  name: page
+                  schema:
+                      type: integer
+                - in: query
+                  name: limit
+                  schema:
+                      type: integer
+                - in: query
+                  name: listed
+                  schema:
+                      type: boolean
+                - in: query
+                  name: search
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: Paginated brands
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PaginatedBrands'
+        post:
+            summary: Create brand
+            tags: [Brands]
+            security:
+                - bearerAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Brand'
+            responses:
+                '201':
+                    description: Brand created
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Brand'
+    /brands/{id}:
+        put:
+            summary: Update brand
+            tags: [Brands]
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Brand'
+            responses:
+                '200':
+                    description: Brand updated
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Brand'
+        delete:
+            summary: Delete brand (hard delete)
+            tags: [Brands]
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: Brand deleted
+    /brands/{id}/unlist:
+        patch:
+            summary: Unlist (soft delete) a brand
+            tags: [Brands]
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: Brand unlisted
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Brand'
+    # Public endpoints (no auth required)
+    /public/products:
+        get:
+            summary: List products (public)
+            tags: [Public]
+            parameters:
+                - in: query
+                  name: page
+                  schema:
+                      type: integer
+                - in: query
+                  name: limit
+                  schema:
+                      type: integer
+                - in: query
+                  name: category
+                  schema:
+                      type: string
+                - in: query
+                  name: brand
+                  schema:
+                      type: string
+                - in: query
+                  name: search
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: Paginated products
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PaginatedProducts'
+    /public/products/{id}:
+        get:
+            summary: Get product by ID (public)
+            tags: [Public]
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: Product details
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Product'
+    /public/categories:
+        get:
+            summary: List categories (public)
+            tags: [Public]
+            responses:
+                '200':
+                    description: Categories
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: '#/components/schemas/Category'
+    /public/brands:
+        get:
+            summary: List brands (public)
+            tags: [Public]
+            responses:
+                '200':
+                    description: Brands
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: '#/components/schemas/Brand'
+    /public/subcategories/{type}:
+        get:
+            summary: Get products by subcategory (public)
+            tags: [Public]
+            parameters:
+                - in: path
+                  name: type
+                  required: true
+                  schema:
+                      type: string
+                      enum: [best-sellers, top-picks, trending, new-commers]
+            responses:
+                '200':
+                    description: Products for subcategory
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    subcategory:
+                                        type: string
+                                    products:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/Product' 

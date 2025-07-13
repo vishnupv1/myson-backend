@@ -1,17 +1,20 @@
-// /routes/productRoutes.js
-const express = require("express");
+const express = require('express');
 const router = express.Router();
+const auth = require('../middlewares/authMiddleware');
 const {
-  getCategory,
-  addCategory,
-  deleteCategory,
-} = require("../controllers/categoryController");
+    getCategories,
+    addCategory,
+    updateCategory,
+    deleteCategory,
+    unlistCategory
+} = require('../controllers/categoryController');
 
-// Route to get all products
-router.get("/", getCategory);
+router.use(auth);
 
-// Route to add a new product
-router.post("/", addCategory);
-router.delete("/:id", deleteCategory); // Use :id parameter to specify the category to delete
+router.get('/', getCategories);
+router.post('/', addCategory);
+router.put('/:id', updateCategory);
+router.patch('/:id/unlist', unlistCategory);
+router.delete('/:id', deleteCategory);
 
 module.exports = router;

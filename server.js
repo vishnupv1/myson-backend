@@ -1,33 +1,42 @@
-// /server.js
-const express = require("express");
-const cors = require("cors");
-const mongoose = require("mongoose");
+require('dotenv').config();
+const express = require('express');
+const pino = require('pino')();
+const path = require('path');
+const connectDB = require('./config/db');
+const errorMiddleware = require('./middlewares/errorMiddleware');
+const corsMiddleware = require('./middlewares/corsMiddleware');
+
+const productRoutes = require('./routes/productRoute');
+const categoryRoutes = require('./routes/categoryRoute');
+const brandRoutes = require('./routes/brandRoute');
+const publicRoutes = require('./routes/publicRoute');
+const loginRoute = require('./routes/loginRoute');
+
 const app = express();
-const productRoutes = require("./routes/productRoute");
-const categoryRoutes = require("./routes/categoryRoute");
-const brandRoutes = require("./routes/brandRoute");
+
+connectDB();
+
+app.use(express.json());
+app.use(corsMiddleware);
+
+// Serve images statically
+app.use('/public/images', express.static(path.join(__dirname, 'public/images')));
+
+// API versioning
+app.use('/api/v1/login', loginRoute);
+app.use('/api/v1/products', productRoutes);
+app.use('/api/v1/categories', categoryRoutes);
+app.use('/api/v1/brands', brandRoutes);
+app.use('/api/v1/public', publicRoutes); // public content endpoints
+
+// Error handling
+app.use(errorMiddleware);
+
 const PORT = process.env.PORT || 5000;
-require("dotenv").config();
-// Middleware
-const corsOptions = {
-  origin: "*", // Allow all origins (change this to restrict access)
-  methods: ["GET", "POST", "PUT", "DELETE"], // Allowed HTTP methods
-  allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
-};
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ limit: "10mb", extended: true }));
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-
-// Routes
-app.use("/api/products", productRoutes);
-app.use("/api/category", categoryRoutes);
-app.use("/api/brands", brandRoutes);
-
-// Start server
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(PORT, () => {
+    console.log("Server started @", new Date().toLocaleString("en-GB",{
+        hourCycle: "h12",
+        timeZone:"Asia/Kolkata"
+    }))
+    console.info(`Server running on port ${PORT}`);
 });
