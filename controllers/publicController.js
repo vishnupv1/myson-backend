@@ -4,25 +4,6 @@ const Brand = require('../models/Brand');
 const AppError = require('../utils/errorHandler');
 const catchAsync = require('../utils/catchAsync');
 
-function buildImageUrls(req, images) {
-    return images.map(img => `${req.protocol}://${req.get('host')}/public/images/${img}`);
-}
-
-// Hardcoded subcategory logic
-const SUBCATEGORIES = {
-    'best-sellers': { field: 'bestSeller', label: 'Best Sellers' },
-    'top-picks': { field: 'topPick', label: 'Top Picks' },
-    'trending': { field: 'trending', label: 'Trending' },
-    'new-commers': { field: 'newCommer', label: 'New Commers' }
-};
-
-// For demo, store product IDs for each subcategory in memory (could be in DB or config)
-const subcategoryProducts = {
-    'best-sellers': [],
-    'top-picks': [],
-    'trending': [],
-    'new-commers': []
-};
 
 // Public: list products (only listed)
 exports.publicProducts = catchAsync(async (req, res, next) => {
@@ -41,10 +22,7 @@ exports.publicProducts = catchAsync(async (req, res, next) => {
         total,
         page: Number(page),
         limit: Number(limit),
-        products: products.map(p => ({
-            ...p.toObject(),
-            images: buildImageUrls(req, p.images)
-        }))
+        products: products.map(p => p.toObject())
     });
 });
 
@@ -54,10 +32,7 @@ exports.publicProductDetails = catchAsync(async (req, res, next) => {
         .populate('category')
         .populate('brand');
     if (!product) return next(new AppError('Product not found', 404));
-    res.json({
-        ...product.toObject(),
-        images: buildImageUrls(req, product.images)
-    });
+    res.json(product.toObject());
 });
 
 // Public: categories (only listed)
@@ -72,37 +47,34 @@ exports.publicBrands = catchAsync(async (req, res, next) => {
     res.json(brands);
 });
 
-// Public: products by subcategory (hardcoded)
-exports.publicSubcategoryProducts = catchAsync(async (req, res, next) => {
-    const { type } = req.params;
-    if (!SUBCATEGORIES[type]) {
-        return next(new AppError('Invalid subcategory', 400));
+// Public: featured products (best-sellers or trending)
+exports.publicFeaturedProducts = catchAsync(async (req, res, next) => {
+    const { type } = req.query;
+
+    let filter = { listed: true };
+
+    if (type === 'best-sellers') {
+        filter.bestSeller = true;
+    } else if (type === 'trending') {
+        filter.trending = true;
+    } else {
+        return next(new AppError('Invalid type. Use type=best-sellers or type=trending', 400));
     }
-    // For demo, get product IDs from in-memory object
-    const ids = subcategoryProducts[type] || [];
-    const products = await Product.find({ _id: { $in: ids }, listed: true })
+
+    const products = await Product.find(filter)
         .populate('category')
         .populate('brand');
+
     res.json({
-        subcategory: SUBCATEGORIES[type].label,
-        products: products.map(p => ({
-            ...p.toObject(),
-            images: buildImageUrls(req, p.images)
-        }))
+        type,
+        products: products.map(p => p.toObject())
     });
 });
-
-// Admin utility: update subcategory products (not public, should be called from admin panel or script)
-exports.setSubcategoryProducts = (type, productIds) => {
-    if (SUBCATEGORIES[type]) {
-        subcategoryProducts[type] = productIds;
-    }
-};
 
 
 exports.searchProducts = catchAsync(async (req, res, next) => {
     const q = req.query.q;
-    
+
     if (!q || typeof q !== 'string' || q.trim() === '') {
         return res.status(400).json({ message: 'Missing or invalid search query' });
     }

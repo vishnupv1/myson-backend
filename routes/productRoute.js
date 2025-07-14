@@ -12,7 +12,9 @@ const {
     replaceImage,
     deleteImage,
     toggleProductListing,
-    searchProducts
+    searchProducts,
+    toggleBestSeller,
+    toggleTrending
 } = require('../controllers/productController');
 
 // All routes below require authentication
@@ -35,7 +37,10 @@ router.put('/:id', upload.array('images', 10), updateProduct);
 
 // Soft delete (unlist)
 router.patch('/:id/listing', toggleProductListing);
-
+// Toggle bestSeller
+router.patch('/:id/best-seller', toggleBestSeller);
+// Toggle trending
+router.patch('/:id/trending', toggleTrending);
 // Hard delete
 router.delete('/:id', deleteProduct);
 

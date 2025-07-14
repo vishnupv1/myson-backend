@@ -9,13 +9,15 @@ const fs = require('fs');
 
 // List products with pagination and filtering
 exports.getProducts = catchAsync(async (req, res, next) => {
-    const { page = 1, limit = 10, category, brand, listed, search } = req.query;
+    const { page = 1, limit = 10, category, brand, listed, search, bestSeller, trending } = req.query;
     const filter = {};
 
     if (category) filter.category = category;
     if (brand) filter.brand = brand;
     if (listed !== undefined && listed !== '') filter.listed = listed === 'true';
     if (search) filter.name = { $regex: search, $options: 'i' };
+    if (bestSeller !== undefined && bestSeller !== '') filter.bestSeller = bestSeller === 'true';
+    if (trending !== undefined && trending !== '') filter.trending = trending === 'true';
 
     const products = await Product.find(filter)
         .populate('category')
@@ -129,6 +131,30 @@ exports.toggleProductListing = catchAsync(async (req, res, next) => {
     const product = await Product.findByIdAndUpdate(id, { listed }, { new: true });
     if (!product) return next(new AppError('Product not found', 404));
     res.json({ message: `Product ${listed ? 'listed' : 'unlisted'}`, product });
+});
+
+// Toggle bestSeller
+exports.toggleBestSeller = catchAsync(async (req, res, next) => {
+    const { id } = req.params;
+    const { bestSeller } = req.body;
+    if (typeof bestSeller !== 'boolean') {
+        return next(new AppError('Missing or invalid "bestSeller" boolean in request body', 400));
+    }
+    const product = await Product.findByIdAndUpdate(id, { bestSeller }, { new: true });
+    if (!product) return next(new AppError('Product not found', 404));
+    res.json({ message: `Product ${bestSeller ? 'marked as best-seller' : 'removed from best-sellers'}`, product });
+});
+
+// Toggle trending
+exports.toggleTrending = catchAsync(async (req, res, next) => {
+    const { id } = req.params;
+    const { trending } = req.body;
+    if (typeof trending !== 'boolean') {
+        return next(new AppError('Missing or invalid "trending" boolean in request body', 400));
+    }
+    const product = await Product.findByIdAndUpdate(id, { trending }, { new: true });
+    if (!product) return next(new AppError('Product not found', 404));
+    res.json({ message: `Product ${trending ? 'marked as trending' : 'removed from trending'}`, product });
 });
 
 // Hard delete

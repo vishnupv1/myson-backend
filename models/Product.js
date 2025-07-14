@@ -32,6 +32,14 @@ const ProductSchema = new mongoose.Schema({
         type: Boolean,
         default: true,
     },
+    bestSeller: {
+        type: Boolean,
+        default: false,
+    },
+    trending: {
+        type: Boolean,
+        default: false,
+    },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Product", ProductSchema);
