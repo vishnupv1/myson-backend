@@ -107,7 +107,7 @@ exports.searchProducts = catchAsync(async (req, res, next) => {
     // Build product query
     let productFilter = { listed: true };
     let orConditions = [];
-    if (q) orConditions.push({ $regex: q, $options: 'i' });
+    if (q) orConditions.push({ name: { $regex: q, $options: 'i' } });
     if (brand) orConditions.push({ brand: brand.id })
     if (category) orConditions.push({ category: category.id });
 
