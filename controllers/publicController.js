@@ -75,14 +75,43 @@ exports.publicFeaturedProducts = catchAsync(async (req, res, next) => {
 exports.searchProducts = catchAsync(async (req, res, next) => {
     const q = req.query.q;
 
+    const results = {
+        brand: null,
+        category: null,
+        products: null,
+    }
+
     if (!q || typeof q !== 'string' || q.trim() === '') {
         return res.status(400).json({ message: 'Missing or invalid search query' });
     }
 
-    const products = await Product.find({
-        name: { $regex: q, $options: 'i' },
-        listed: true
-    }).limit(10).populate("brand");
+    // Split query into possible brand and category terms
+    const [brandQuery, categoryQuery] = q.trim().split(/ (.*)/);
 
-    res.json(products);
+    // Prepare promises for brand and category
+    const brandPromise = brandQuery ? Brand.findOne({
+        name: { $regex: brandQuery, $options: 'i' },
+        listed: true
+    }) : Promise.resolve(null);
+
+    const categoryPromise = Category.findOne({
+        name: { $regex: categoryQuery || brandQuery , $options: 'i' },
+        listed: true
+    });
+
+    // Await the results brand and category to resolve
+    const [brand, category] = await Promise.all([brandPromise, categoryPromise]);
+    results.brand = brand;
+    results.category = category;
+
+    // Build product query
+    let productFilter = { listed: true };
+    if (q) productFilter.name = { $regex: q, $options: 'i' };
+
+    results.products = await Product.find(productFilter)
+        .limit(15)
+        .populate("brand")
+        .populate("category");
+
+    res.json(results);
 });
