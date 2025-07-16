@@ -95,7 +95,7 @@ exports.searchProducts = catchAsync(async (req, res, next) => {
     }) : Promise.resolve(null);
 
     const categoryPromise = Category.findOne({
-        name: { $regex: categoryQuery || brandQuery , $options: 'i' },
+        name: { $regex: categoryQuery || brandQuery, $options: 'i' },
         listed: true
     });
 
@@ -106,9 +106,14 @@ exports.searchProducts = catchAsync(async (req, res, next) => {
 
     // Build product query
     let productFilter = { listed: true };
-    if (q) productFilter.name = { $regex: q, $options: 'i' };
-    if(brand) productFilter.brand = brand.id
-    if(category) productFilter.category = category.id
+    let orConditions = [];
+    if (q) orConditions.push({ $regex: q, $options: 'i' });
+    if (brand) orConditions.push({ brand: brand.id })
+    if (category) orConditions.push({ category: category.id });
+
+    if (orConditions.length > 0) {
+        productFilter.$or = orConditions;
+    }
 
     results.products = await Product.find(productFilter)
         .limit(15)
