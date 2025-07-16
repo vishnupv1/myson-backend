@@ -107,6 +107,8 @@ exports.searchProducts = catchAsync(async (req, res, next) => {
     // Build product query
     let productFilter = { listed: true };
     if (q) productFilter.name = { $regex: q, $options: 'i' };
+    if(brand) productFilter.brand = brand.id
+    if(category) productFilter.category = category.id
 
     results.products = await Product.find(productFilter)
         .limit(15)
