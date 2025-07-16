@@ -33,16 +33,18 @@ app.use('/api/v1/public', publicRoutes); // public content endpoints
 app.use(errorMiddleware);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, "0.0.0.0", () => {
-    const imagesDir = path.join(__dirname, 'public/images');
-    if (!fs.existsSync(imagesDir)) {
-        fs.mkdirSync(imagesDir, { recursive: true });
-        console.log(`Created missing directory: ${imagesDir}`);
-    }
+app.listen(PORT,
+    process.env.NODE_ENV === "development" ? "0.0.0.0" : "127.0.0.1",
+    () => {
+        const imagesDir = path.join(__dirname, 'public/images');
+        if (!fs.existsSync(imagesDir)) {
+            fs.mkdirSync(imagesDir, { recursive: true });
+            console.log(`Created missing directory: ${imagesDir}`);
+        }
 
-    console.log("Server started @", new Date().toLocaleString("en-GB", {
-        hourCycle: "h12",
-        timeZone: "Asia/Kolkata"
-    }))
-    console.info(`Server running on port ${PORT}`);
-});
+        console.log("Server started @", new Date().toLocaleString("en-GB", {
+            hourCycle: "h12",
+            timeZone: "Asia/Kolkata"
+        }))
+        console.info(`Server running on port ${PORT}`);
+    });
